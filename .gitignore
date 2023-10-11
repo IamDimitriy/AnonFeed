@@ -1,0 +1,11 @@
+#Directories
+/shelf/
+/.idea
+/workspace.xml
+/httpRequests/
+/dataSources/
+/dataSources.local.xml
+
+#Files
+README.md
+settings.txt
