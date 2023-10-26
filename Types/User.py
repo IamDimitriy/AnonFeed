@@ -8,7 +8,9 @@ import Main
 import Utils
 
 from typing import List
-from Topic import Topic
+
+from Constants import Pathes
+from Types.Topic import Topic
 
 
 class User:
@@ -22,7 +24,12 @@ class User:
     async def create_topic(self, question: str) -> Topic:
         topics = await self.get_topics()
 
-        topic = Topic(question, len(topics))
+        if len(topics) > 0:
+            topic_id = await topics[-1].get_id()+1
+        else:
+            topic_id = 0
+
+        topic = Topic(question, topic_id)
         uid = await self.get_uid()
         await topic.flush(uid)
 
@@ -40,7 +47,7 @@ class User:
         await topic.delete()
 
     async def flush(self):
-        with open("SQL/Queries/PostUser.sql") as file:
+        with open(Pathes.Queries_folder + "/PostUser.sql") as file:
             cur = Main.db.cursor()
             request = await Utils.read_async(file)
             uid = await self.get_uid()
@@ -62,7 +69,7 @@ class User:
         return self.__topics[index]
 
     async def initialize_topics(self):
-        with open("SQL/Queries/GetTopics.sql") as file:
+        with open(Pathes.Queries_folder + "/GetTopics.sql") as file:
             cur = Main.db.cursor()
             request = await Utils.read_async(file)
             uid = await self.get_uid()
@@ -74,7 +81,7 @@ class User:
             self.__topics.append(Topic(i[1], i[0]))
 
     async def sync_uid(self):
-        with open("SQL/Queries/GetUserId.sql") as file:
+        with open(Pathes.Queries_folder + "/GetUserId.sql") as file:
             cur = Main.db.cursor()
             request = await Utils.read_async(file)
             cor: Cursor = await Utils.exec_request_async(cur, request, self.telegram_uid)

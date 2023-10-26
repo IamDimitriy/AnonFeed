@@ -3,7 +3,9 @@
 /.idea
 /httpRequests/
 /dataSources/
-/Data
+/Data/
+/__pycache__/
+/SQL/
 
 #Files
 README.md

@@ -2,45 +2,18 @@ import asyncio
 import importlib
 import json
 import logging
-from inspect import isfunction
+import sqlite3
 
+from inspect import isfunction
 from aiogram import Router, Dispatcher, Bot
 
-import Users
-from Types import Settings, User
+from Constants import Pathes
+from Settings import Settings
+
+logging.basicConfig(level=logging.DEBUG)
 
 
-async def main():
-    data = open("Data/Settings.txt").read()
-    settings = Settings(**json.loads(data))
-
-    logging.basicConfig(level=logging.DEBUG)
-
-    bot = Bot(settings.token)
-    dispatcher = Dispatcher()
-
-    init_commands(dispatcher, settings)
-
-    user1 = User("a", int(settings.telegram_uid))
-    user1.create_topic("Я лох?")
-    user1.create_topic("Я лох2?")
-    user1.create_topic("Я лох3?")
-    topic = user1.get_topic(0)
-    topic.add_answer("Да")
-    topic.add_answer("Да")
-    topic.add_answer("Да")
-    topic = user1.get_topic(1)
-    topic.add_answer("Нет")
-    topic.add_answer("Нет")
-    topic.add_answer("Нет")
-
-    Users.Users.append(user1)
-
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dispatcher.start_polling(bot)
-
-
-def init_commands(dispatcher: Dispatcher, settings: Settings):
+def init_commands():
     for name in settings.init_file_names:
         router = call_init(name, settings.init_function_name)
         dispatcher.include_router(router)
@@ -53,5 +26,30 @@ def call_init(full_module_name, func_name) -> Router:
         return attribute()
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+db = sqlite3.connect(Pathes.Data_base_folder + "/main.db", check_same_thread=False)
+data = open(Pathes.Settings_file).read()
+
+settings = Settings(**json.loads(data))
+bot = Bot(settings.token)
+dispatcher = Dispatcher()
+loop = asyncio.get_event_loop()
+
+
+async def delay_exit():
+    await loop.run_in_executor(None, input)
+    await dispatcher.stop_polling()
+    await bot.close()
+    db.commit()
+    db.close()
+
+
+async def main():
+    init_commands()
+    await bot.delete_webhook(drop_pending_updates=True)
+
+    await dispatcher.start_polling(bot, close_bot_session=True)
+
+
+if __name__ == '__main__':
+    loop.create_task(delay_exit())
+    loop.run_until_complete(main())

@@ -1,4 +1,4 @@
-from Enums import Commands
+from Constants import Commands
 from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardMarkup, ReplyKeyboardBuilder
 
@@ -10,8 +10,12 @@ def create_markup() -> ReplyKeyboardMarkup:
     look_at_answers = types.KeyboardButton(text=Commands.Look_at_answers)
 
     builder = ReplyKeyboardBuilder()
+
+    builder.row(answer_to_question)
     builder.row(ask_question, chose_preset)
     builder.row(look_at_answers)
+
     markup = builder.as_markup()
+    markup.resize_keyboard = True
 
     return markup

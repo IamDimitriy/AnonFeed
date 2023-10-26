@@ -16,8 +16,16 @@ class Commands:
 class CallbackData:
     Cancel = "Cancel"
 
+class Pathes:
+    Instruction_image = r"C:\Users\q3216\PycharmProjects\pythonProject\Data\logo.jpg"
+    Settings_file = r"C:\Users\q3216\PycharmProjects\pythonProject\Data\Settings.txt"
+    Queries_folder = r"C:\Users\q3216\PycharmProjects\pythonProject\SQl\Queries"
+    Data_base_folder = r"C:\Users\q3216\PycharmProjects\pythonProject\SQl\DataBases"
+
+
 
 class Phrases:
+    Reference = "Вот ваша ссылка на вопрос:"
     CancelInput = "Прекратить ввод"
     Input_stopped = "Ввод остановлен"
     Try_again = "Попробуйте еще раз"

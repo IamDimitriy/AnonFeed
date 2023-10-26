@@ -4,7 +4,8 @@ from typing import List
 
 import Main
 import Utils
-from Answer import Answer
+from Constants import Pathes
+from Types.Answer import Answer
 
 
 class Topic:
@@ -19,8 +20,18 @@ class Topic:
         self.__answers.append(ans)
         return ans
 
-    def get_answers_count(self) -> int:
-        return len(self.__answers)
+    async def get_answers_count(self) -> int:
+        answers = await self.get_answers()
+        return len(answers)
+
+    def get_question(self):
+        return self.__question
+
+    async def get_answer(self, index: int) -> Answer:
+        if not self.__answers:
+            self.__answers = await self.sync_answers()
+
+        return self.__answers[index]
 
     async def get_answers(self) -> list[Answer]:
         if not self.__answers:
@@ -29,19 +40,19 @@ class Topic:
         return self.__answers
 
     async def sync_answers(self):
-        with open("SQL/Queries/GetAnswers.sql") as file:
+        with open(Pathes.Queries_folder + "/GetAnswers.sql") as file:
             cur = Main.db.cursor()
             request = await Utils.read_async(file)
             id_ = await self.get_id()
-            cur = await Utils.exec_request_async(cur, request, id_)
+            await Utils.exec_request_async(cur, request, id_)
+            res = cur.fetchall()
             Main.db.commit()
             cur.close()
 
-    def get_question(self) -> str:
-        return self.__question
+        return [Answer(x[0], i) for i, x in enumerate(res)]
 
     async def flush(self, author_id):
-        with open("SQL/Queries/PostTopic.sql") as file:
+        with open(Pathes.Queries_folder + "/PostTopic.sql") as file:
             cur = Main.db.cursor()
             text = await Utils.read_async(file)
             request = text.replace("\n", " ")
@@ -54,7 +65,7 @@ class Topic:
             await i.flush(self.__id)
 
     async def delete(self):
-        with open("SQL/Queries/DeleteTopic.sql") as file:
+        with open(Pathes.Queries_folder + "/DeleteTopic.sql") as file:
             cur = Main.db.cursor()
             text = await Utils.read_async(file)
             request = text.replace("\n", " ")
