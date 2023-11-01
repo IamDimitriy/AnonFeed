@@ -1,18 +1,18 @@
 import asyncio
-import sqlite3
-import typing
-from sqlite3 import Cursor, Connection
-from typing import Any, List
+from abc import ABC, abstractmethod
+from sqlite3 import Connection
+from typing import List
 
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 
+import Constants
 import Main
 import Utils
 from Constants import Phrases, Commands, CallbackData, Pathes
-from Markups import CancelMarkup, MainMarkup
+from Markups import CancelMarkup, MainMarkup, LookAtAnswerMarkup
 from Types.Topic import Topic
 
 
@@ -21,24 +21,20 @@ class FSMAnswerToQuestion(StatesGroup):
     answer = State()
 
 
-delimiter = "_"
-
-
-async def redirect_to_topic_answer(message: Message, params_str: str, state: FSMContext):
+async def redirect_to_topic_answer(message: Message, params: str, state: FSMContext):
     with open(Pathes.Queries_folder + "/GetTopic.sql") as file:
         request = await Utils.read_async(file)
         cur = Main.db.cursor()
-        params = params_str.split(delimiter)
-        cur = await Utils.exec_request_async(cur, request, *params)
+        cur = await Utils.exec_request_async(cur, request, params)
         res = cur.fetchone()
-        topic = Topic(*res)
+        topic = Topic(*res[:-1])
         main_markup = MainMarkup.create_markup()
         cancel_markup = CancelMarkup.create_markup()
-        mes: Message = await message.answer(Phrases.Question + "\n" + topic.get_question(), reply_markup=main_markup)
+        await message.answer(Phrases.Greeting, reply_markup=main_markup)
+        await message.answer(Phrases.Answer_to_question + "\n" + topic.get_question(), reply_markup=cancel_markup)
         cur.close()
 
-
-        await state.update_data(topic=topic, user_id=params[0])
+        await state.update_data(topic=topic, user_id=res[-1])
 
     await state.set_state(FSMAnswerToQuestion.answer)
 
@@ -49,33 +45,34 @@ def init():
     @router.message(F.text == Commands.Answer_to_question)
     async def answer_to_question(message: Message, state: FSMContext):
         cancel_markup = CancelMarkup.create_markup()
-        await message.answer(Phrases.Enter_Question_id, reply_markup=cancel_markup)
+        await message.answer(Phrases.Enter_question_id, reply_markup=cancel_markup)
         await state.set_state(FSMAnswerToQuestion.topic_id)
 
     @router.message(FSMAnswerToQuestion.topic_id)
     async def topic_id_handler(message: Message, state: FSMContext):
-        params = message.text.split(delimiter)
+        topic_id = message.text
 
-        if len(params) != 2:
+        with open(Pathes.Queries_folder + "/GetTopic.sql") as file:
+            request = await Utils.read_async(file)
+            cur = Main.db.cursor()
+            cur = await Utils.exec_request_async(cur, request, topic_id)
+            res = cur.fetchone()
+            cur.close()
+
+        if not res:
             await message.reply(Phrases.Incorrect_question_id)
             cancel_markup = CancelMarkup.create_markup()
             await message.answer(Phrases.Try_again, reply_markup=cancel_markup)
 
         else:
-            with open(Pathes.Queries_folder + "/GetTopic.sql") as file:
-                request = await Utils.read_async(file)
-                cur = Main.db.cursor()
-                cur = await Utils.exec_request_async(cur, request, *params)
-                res = cur.fetchone()
-                topic = Topic(*res)
-                await message.answer(Phrases.Question + "\n" + topic.get_question())
-                cur.close()
+            topic = Topic(*res[:-1])
+            await message.answer(Phrases.Answer_to_question + "\n" + topic.get_question())
 
             cancel_markup = CancelMarkup.create_markup()
 
             if topic:
-                await message.answer(Phrases.Enter_Question_id, reply_markup=cancel_markup)
-                await state.update_data(topic=topic, user_id=params[0])
+                await message.answer(Phrases.Answer_to_question, reply_markup=cancel_markup)
+                await state.update_data(topic=topic, user_id=res[-1])
                 await state.set_state(FSMAnswerToQuestion.answer)
             else:
                 await message.answer(Phrases.Incorrect_question_id)
@@ -83,13 +80,14 @@ def init():
 
     @router.callback_query(F.data == CallbackData.Cancel)
     async def process_stop(message: Message, state: FSMContext):
-
-        await message.answer(Phrases.Input_stopped)
+        main_markup = MainMarkup.create_markup()
+        await message.answer(Phrases.Input_stopped, reply_markup=main_markup)
         await state.clear()
 
     @router.message(FSMAnswerToQuestion.answer)
     async def post_answer(message: Message, state: FSMContext):
-        await message.reply(Phrases.Thanks_for_answer)
+        main_markup = MainMarkup.create_markup()
+        await message.reply(Phrases.Thanks_for_answer, reply_markup=main_markup)
         answer = message.text
         data = await state.get_data()
         topic: Topic = data["topic"]
@@ -98,12 +96,35 @@ def init():
         await topic.flush(user_id)
         await state.clear()
 
+        asyncio.create_task(notify(user_id, topic))
+
+    async def notify(user_id: int, topic: Topic):
+
+        answer_count = await topic.get_answers_count()
+        topic_id = await topic.get_id()
+        question = topic.get_question()
+
+        with open(Pathes.Queries_folder + "/GetChatId.sql") as file:
+            request = await Utils.read_async(file)
+            cur = Main.db.cursor()
+            cur = await Utils.exec_request_async(cur, request, user_id)
+            res = cur.fetchone()
+            cur.close()
+
+        if res:
+            markup = LookAtAnswerMarkup.create_markup(Commands.Look_at_answers + "_" + str(topic_id))
+            chat_id = int(res[0])
+            answer = " ".join([Phrases.On_your_question + str(question), Phrases.Got_answer, str(answer_count),
+                               Constants.sclon_answer[min(answer_count, 5)]])
+            await Main.bot.send_message(chat_id=chat_id,
+                                        text=answer, reply_markup=markup)
+
     return router
 
 
 class Query:
 
-    def __init__(self, path: str, sql_request: str = ""):
+    def __init__(self, path: str, sql_request: str):
         self.__path: str = path
         self.__sql_request: str = sql_request
 
@@ -124,7 +145,22 @@ from typing import TypeVar, Generic
 T = TypeVar('T')
 
 
-class Field(Generic[T]):
+class Parameter(ABC):
+    @abstractmethod
+    def __str__(self):
+        pass
+
+
+class BuiltInParameter(Parameter):
+
+    def __init__(self, value):
+        self.__value = value
+
+    def __str__(self):
+        return str(self.__value)
+
+
+class Field(Generic[T], Parameter):
 
     def __init__(self, value: T, synced: bool):
         self.__value = value
@@ -137,28 +173,17 @@ class Field(Generic[T]):
         self.synced = value == self.__value
         self.__value = value
 
-
-class SyncObject:
-    def __init__(self):
-        for key, value in vars(self):
-            if key.isinstance(Field):
-                 pass
-
-
-    def sync_fields(self):
-        pass
-
-    def flush_fields(self):
-        pass
+    def __str__(self):
+        return str(self.__value)
 
 
 class Request:
     PLACE_HOLDER = "?"
 
-    def __init__(self, query: Query, params: List[str]):
+    def __init__(self, query: Query, params: List[Parameter]):
         self.__query: Query = query
         self.__request: str = ""
-        self.__params: List[str] = params
+        self.__params: List[Parameter] = params
 
     async def get_request_async(self) -> str:
         if self.__request:
@@ -170,10 +195,10 @@ class Request:
         request_arr = []
         for i, val in enumerate(parts):
             request_arr.append(val)
-            request_arr.append(self.__params[i])
+            request_arr.append(str(self.__params[i]))
 
         for i in range(len(parts), len(self.__params)):
-            request_arr.append(self.__params[i])
+            request_arr.append(str(self.__params[i]))
 
         self.__request = str(request_arr)
         return self.__request
@@ -202,3 +227,17 @@ class DataBase:
         self.__db.commit()
 
         return result
+
+
+class SyncObject:
+
+    def __init__(self, db: DataBase, sync_request: Request, flush_request: Request):
+        self.__db = db
+        self.__sync_request = sync_request
+        self.__flush_request = flush_request
+
+    async def sync(self):
+        await self.__db.execute_request(self.__sync_request)
+
+    async def flush(self):
+        await self.__db.execute_request(self.__flush_request)

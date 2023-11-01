@@ -1,23 +1,23 @@
-import copy
 import hashlib
 import random
 import time
 from sqlite3 import Cursor
+from typing import List
 
 import Main
 import Utils
-
-from typing import List
-
 from Constants import Pathes
 from Types.Topic import Topic
+
+randomizer = random.Random(time.time())
 
 
 class User:
     MAX_TOPIC_COUNT = 5
 
-    def __init__(self, telegram_uid: int):
-        self.telegram_uid: str = self.__hash_telegram_uid__(telegram_uid)
+    def __init__(self, telegram_uid: int, chat_id: int):
+        self.telegram_uid: str = str(telegram_uid)
+        self.__chat_id: int = chat_id
         self.__topics: List[Topic] = []
         self.__uid: int = -1
 
@@ -25,20 +25,18 @@ class User:
         topics = await self.get_topics()
 
         if len(topics) > 0:
-            topic_id = await topics[-1].get_id()+1
+            topic_sequence = ((await topics[-1].get_id()) + 1) % self.MAX_TOPIC_COUNT
         else:
-            topic_id = 0
+            topic_sequence = 0
 
-        topic = Topic(question, topic_id)
+        topic = Topic(question, topic_sequence)
         uid = await self.get_uid()
         await topic.flush(uid)
 
         if len(topics) < User.MAX_TOPIC_COUNT:
             topics.append(topic)
         else:
-            first_topic = topics.pop(0)
-            await first_topic.delete()
-            topics.append(topic)
+            topics[topic_sequence] = topic
 
         return topic
 
@@ -51,7 +49,7 @@ class User:
             cur = Main.db.cursor()
             request = await Utils.read_async(file)
             uid = await self.get_uid()
-            await Utils.exec_request_async(cur, request, uid, self.telegram_uid)
+            await Utils.exec_request_async(cur, request, uid, self.telegram_uid, self.__chat_id)
             Main.db.commit()
             cur.close()
 
@@ -78,7 +76,7 @@ class User:
             cur.close()
 
         for i in questions:
-            self.__topics.append(Topic(i[1], i[0]))
+            self.__topics.append(Topic(i[1], i[2], i[0]))
 
     async def sync_uid(self):
         with open(Pathes.Queries_folder + "/GetUserId.sql") as file:
@@ -93,8 +91,7 @@ class User:
 
     @staticmethod
     def __generate_uid__() -> int:
-        random.seed(time.time())
-        uid = random.randrange(0, 2147483647, 1)
+        uid = randomizer.randrange(0, 10_000_000_000, 1)
         return uid
 
     @staticmethod

@@ -1,10 +1,10 @@
 from aiogram import types, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 
 from Constants import FrequentlyAskedQuestions, Commands, Phrases, CallbackData
-from Markups import CancelMarkup
+from Markups import CancelMarkup, MainMarkup
 from Types.User import User
 
 
@@ -26,21 +26,22 @@ def init():
 
     @router.callback_query(F.data == CallbackData.Cancel)
     async def process_stop(message: Message, state: FSMContext):
-        await message.answer(Phrases.Input_stopped)
+        main_markup = MainMarkup.create_markup()
+        await message.answer(Phrases.Input_stopped, reply_markup=main_markup)
         await state.clear()
 
     @router.message(FSMChoosePreset.preset_index, F.text.func(lambda num: str.isdigit(num)))
     async def process_preset_index_success(message: types.Message, state: FSMContext):
         preset_index = int(message.text) - 1
         question = FrequentlyAskedQuestions.Preset[preset_index]
-        user = User(message.from_user.id)
+        user = User(message.from_user.id, message.chat.id)
         topic = await user.create_topic(question)
 
-        uid = await user.get_uid()
         topic_id = await topic.get_id()
-
+        main_markup = MainMarkup.create_markup()
         await message.reply(Phrases.Questions_asked)
-        await message.reply(Phrases.Reference + "\n" + "t.me/AnonFeedBot?start=topic-" + str(uid) + "_" + str(topic_id))
+        await message.reply(Phrases.Reference + "\n" + "t.me/AnonFeedBot?start=topic-" + str(topic_id),
+                            reply_markup=main_markup)
         await user.flush()
         await state.clear()
 

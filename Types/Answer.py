@@ -18,3 +18,12 @@ class Answer:
 
     def get_message(self):
         return self.__message
+
+    async def delete(self):
+        with open(Pathes.Queries_folder + "/DeleteAnswer.sql") as file:
+            cur = Main.db.cursor()
+            request = await Utils.read_async(file)
+            await Utils.exec_request_async(cur, request, self.__id)
+            Main.db.commit()
+            cur.close()
+

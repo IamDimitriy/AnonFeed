@@ -10,7 +10,7 @@ from aiogram import Router, Dispatcher, Bot
 from Constants import Pathes
 from Settings import Settings
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.NOTSET)
 
 
 def init_commands():

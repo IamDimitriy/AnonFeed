@@ -20,7 +20,7 @@ def init():
     async def command_start(message: types.Message):
         await message.delete()
 
-        user = User(message.from_user.id)
+        user = User(message.from_user.id, message.chat.id)
         await user.flush()
         await message.answer(Phrases.Greeting)
         await message.answer(Phrases.Introduce)

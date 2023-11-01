@@ -1,15 +1,16 @@
 from aiogram import types, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 
 from Constants import Commands, Phrases, CallbackData
-from Markups import CancelMarkup
+from Markups import CancelMarkup, MainMarkup
 from Types.User import User
 
 
 class FSMAskQuestion(StatesGroup):
     answer = State()
+
 
 def init():
     router = Router()
@@ -17,24 +18,25 @@ def init():
     @router.message(F.text == Commands.Ask_question)
     async def command_ask_question(message: types.Message, state: FSMContext):
         cancel_markup = CancelMarkup.create_markup()
-        await message.answer(Phrases.Enter_question, reply_markup=cancel_markup)
         await state.set_state(FSMAskQuestion.answer)
+        await message.answer(Phrases.Enter_question, reply_markup=cancel_markup)
 
     @router.callback_query(F.data == CallbackData.Cancel)
     async def process_stop(message: Message, state: FSMContext):
-        await message.answer(Phrases.Input_stopped)
+        main_markup = MainMarkup.create_markup()
+        await message.answer(Phrases.Input_stopped, reply_markup=main_markup)
         await state.clear()
 
     @router.message(FSMAskQuestion.answer, F.text != "")
     async def process_answer_success(message: types.Message, state: FSMContext):
         question = message.text
-        user = User(message.from_user.id)
+        user = User(message.from_user.id,message.chat.id)
         topic = await user.create_topic(question)
-        uid = await user.get_uid()
         topic_id = await topic.get_id()
-
+        main_markup = MainMarkup.create_markup()
         await message.reply(Phrases.Questions_asked)
-        await message.reply(Phrases.Reference + "\n" + "t.me/AnonFeedBot?start=topic-" + str(uid) + "_" + str(topic_id))
+        await message.reply(Phrases.Reference + "\n" + "t.me/AnonFeedBot?start=topic-" + str(topic_id),
+                            reply_markup=main_markup)
         await state.clear()
         await user.flush()
 

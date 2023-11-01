@@ -1,87 +1,76 @@
+import asyncio
+from typing import List
+
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram import types, F, Router
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
-from Constants import Commands, Phrases, CallbackData
-from Markups import CancelMarkup
-from Types import Topic
-from Types.User import User
+import Main
+import Utils
+from Constants import Commands, Phrases, CallbackData, Pathes
+from Markups import LookAtAnswerMarkup
+from Types import Answer
+from Types.Topic import Topic
 
 
 class FSMLookAtAnswers(StatesGroup):
-    question_index = State()
-    answer_index = State()
+    Loop = State()
 
 
 def init():
     router = Router()
 
-    @router.message(F.text == Commands.Look_at_answers)
-    async def command_look_at_answers(message: types.Message, state: FSMContext):
-        user = User(message.from_user.id)
-        topics = await user.get_topics()
-        count = len(topics)
-        if count > 0:
-            string_questions = '\n'.join([str(x + 1) + ") " + topics[x].get_question() for x in range(len(topics))])
+    @router.callback_query(F.func(lambda x: Commands.Look_at_answers in x.data))
+    async def command_look_at_answers(callback: CallbackQuery, state: FSMContext):
+        topic_id = callback.data.split("_")[1]
+        await callback.answer(text="", show_alert=False)
 
-            cancel_markup = CancelMarkup.create_markup()
-            await state.update_data(topics=topics)
-            await message.reply(Phrases.Your_questions + "\n" + string_questions)
-            await message.answer(Phrases.Enter_number, reply_markup=cancel_markup)
-            await state.set_state(FSMLookAtAnswers.question_index)
-            await user.flush()
-        else:
-            await message.reply(Phrases.Empty_question_list)
-            await state.clear()
+        with open(Pathes.Queries_folder + "/GetTopic.sql") as file:
+            cur = Main.db.cursor()
+            request = await Utils.read_async(file)
+            await Utils.exec_request_async(cur, request, topic_id)
+            res = cur.fetchone()
+            cur.close()
 
-    @router.message(FSMLookAtAnswers.question_index, F.text.func(lambda num: str.isdigit(num)))
-    async def process_question_index_success(message: types.Message, state: FSMContext):
-        topic_index = int(message.text) - 1
+        topic: Topic = Topic(*res[:-1])
+        answers: List[Answer] = await topic.get_answers()
 
-        cancel_markup = CancelMarkup.create_markup()
+        await state.update_data(answers=answers)
+        await state.set_state(FSMLookAtAnswers.Loop)
+        message = callback.message
+        asyncio.create_task(process_loop(message, state))
+
+    async def process_loop(message: Message, state: FSMContext):
 
         data = await state.get_data()
-        await state.set_data({})
+        answers = data["answers"]
 
-        topic = data["topics"][topic_index]
-        await state.update_data(topic=topic)
-        count = await topic.get_answers_count()
-        await message.reply(Phrases.Answers_list + str(count))
+        for i in range(0, min(3, len(answers))):
+            markup = ""
+            if i == min(3, len(answers)) - 1 and 3 < len(answers):
+                markup = LookAtAnswerMarkup.create_markup(CallbackData.Next)
 
-        if count > 0:
-            await message.answer(Phrases.Want_to_look_up)
-            await message.answer(Phrases.Enter_number, reply_markup=cancel_markup)
-            await state.set_state(FSMLookAtAnswers.answer_index)
-        else:
-            await message.answer(Phrases.Nothing_to_look_up)
+            answer: Answer = answers[i]
+
+            if markup:
+                await message.answer(answer.get_message(), reply_markup=markup)
+            else:
+                await message.answer(answer.get_message())
+
+            await answer.delete()
+
+        if 3 >= len(answers):
+            await message.answer(Phrases.All_answers_viewed)
             await state.clear()
+            return
 
-    @router.message(FSMLookAtAnswers.question_index)
-    async def process_question_index_failure(message: types.Message):
-        cancel_markup = CancelMarkup.create_markup()
-        await message.reply(Phrases.Invalid_number)
-        await message.answer(Phrases.Enter_number, reply_markup=cancel_markup)
+        await state.update_data(answers=answers[3:])
+        await state.set_state(FSMLookAtAnswers.Loop)
 
-    @router.message(FSMLookAtAnswers.answer_index, F.text.func(lambda num: str.isdigit(num)))
-    async def process_number_success(message: types.Message, state: FSMContext):
-        answer_index = int(message.text) - 1
-
-        data = await state.get_data()
-        topic: Topic = data["topic"]
-        answer = await topic.get_answer(answer_index)
-        await message.reply(answer.get_message())
-        await state.clear()
-
-    @router.message(FSMLookAtAnswers.answer_index)
-    async def process_number_failure(message: types.Message):
-        cancel_markup = CancelMarkup.create_markup()
-        await message.reply(Phrases.Invalid_number)
-        await message.answer(Phrases.Enter_number, reply_markup=cancel_markup)
-
-    @router.callback_query(F.data == CallbackData.Cancel)
-    async def process_stop(message: Message, state: FSMContext):
-        await message.answer(Phrases.Input_stopped)
-        await state.clear()
+    @router.callback_query(F.data == CallbackData.Next)
+    async def process_next_callback(query: CallbackQuery, state: FSMContext):
+        await query.answer(text="", show_alert=False)
+        asyncio.create_task(process_loop(query.message, state))
 
     return router

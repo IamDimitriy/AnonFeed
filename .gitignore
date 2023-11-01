@@ -6,6 +6,7 @@
 /Data/
 /__pycache__/
 /SQL/
+__pycache__
 
 #Files
 README.md

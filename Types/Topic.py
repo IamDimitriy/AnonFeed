@@ -7,12 +7,15 @@ import Utils
 from Constants import Pathes
 from Types.Answer import Answer
 
+randomizer = random.Random(time.time())
+
 
 class Topic:
-    def __init__(self, question: str, topic_id: int = -1):
+    def __init__(self, question: str, topic_sequence: int, topic_id: int = -1):
         self.__id: int = topic_id
         self.__question: str = question
         self.__answers: List[Answer] = []
+        self.__topic_sequence = topic_sequence
 
     async def add_answer(self, answer: str) -> Answer:
         answers = await self.get_answers()
@@ -40,7 +43,7 @@ class Topic:
         return self.__answers
 
     async def sync_answers(self):
-        with open(Pathes.Queries_folder + "/GetAnswers.sql") as file:
+        with open(Pathes.Queries_folder + "/GetAllAnswers.sql") as file:
             cur = Main.db.cursor()
             request = await Utils.read_async(file)
             id_ = await self.get_id()
@@ -57,7 +60,7 @@ class Topic:
             text = await Utils.read_async(file)
             request = text.replace("\n", " ")
             id_ = await self.get_id()
-            await Utils.exec_request_async(cur, request, id_, author_id, self.__question)
+            await Utils.exec_request_async(cur, request, id_, author_id, self.__question, self.__topic_sequence)
             Main.db.commit()
             cur.close()
 
@@ -75,14 +78,31 @@ class Topic:
             cur.close()
 
     async def get_id(self):
-        if self.__id == -1:
-            self.__id = self.__generate_id__()
+        if self.__id != -1:
+            return self.__id
 
-        return self.__id
+        with open(Pathes.Queries_folder + "/GetTopic.sql") as file:
+            request = await Utils.read_async(file)
 
-    def __generate_id__(self) -> int:
-        random.seed(time.time())
-        generated_id = random.randrange(0, 2147483647, 1)
+            cur = Main.db.cursor()
+            topic_id = self.__generate_id__()
+
+            cur = await Utils.exec_request_async(cur, request, topic_id)
+            res = cur.fetchone()
+
+            while res:
+                topic_id = self.__generate_id__()
+                cur = await Utils.exec_request_async(cur, request, topic_id)
+                res = cur.fetchone()
+
+            cur.close()
+
+            self.__id = topic_id
+            return self.__id
+
+    @staticmethod
+    def __generate_id__() -> int:
+        generated_id = randomizer.randrange(0, 9_223_372_036_854_775_808, 1)
         return generated_id
 
     def __bool__(self):
