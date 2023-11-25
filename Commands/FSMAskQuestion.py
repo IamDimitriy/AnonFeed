@@ -17,6 +17,8 @@ def init():
 
     @router.message(F.text == Commands.Ask_question)
     async def command_ask_question(message: types.Message, state: FSMContext):
+        await state.clear()
+
         cancel_markup = CancelMarkup.create_markup()
         await state.set_state(FSMAskQuestion.answer)
         await message.answer(Phrases.Enter_question, reply_markup=cancel_markup)

@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 
-import Main
+import main
 import Utils
 from Constants import Commands, Phrases, CallbackData, Pathes
 from Markups import LookAtAnswerMarkup
@@ -23,11 +23,13 @@ def init():
 
     @router.callback_query(F.func(lambda x: Commands.Look_at_answers in x.data))
     async def command_look_at_answers(callback: CallbackQuery, state: FSMContext):
+        await state.clear()
+
         topic_id = callback.data.split("_")[1]
         await callback.answer(text="", show_alert=False)
 
         with open(Pathes.Queries_folder + "/GetTopic.sql") as file:
-            cur = Main.db.cursor()
+            cur = main.db.cursor()
             request = await Utils.read_async(file)
             await Utils.exec_request_async(cur, request, topic_id)
             res = cur.fetchone()

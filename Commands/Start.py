@@ -2,9 +2,12 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile
 
+import Constants
 import Markups.MainMarkup
+import main
 from Commands import FSMAnswerToQuestion
 from Constants import Commands, Phrases, Pathes
+from Test import Field, Request, Query
 from Types.User import User
 
 name_value_delimiter = "-"
@@ -19,7 +22,6 @@ def init():
     @router.message(F.text == Commands.Start)
     async def command_start(message: types.Message):
         await message.delete()
-
         user = User(message.from_user.id, message.chat.id)
         await user.flush()
         await message.answer(Phrases.Greeting)
@@ -31,7 +33,10 @@ def init():
                                    reply_markup=markup)
 
     @router.message(F.text.contains(Commands.Start))
+    @main.conversion.count_link_follow
     async def command_start_deeplink(message: types.Message, state: FSMContext):
+        await state.clear()
+
         await message.delete()
         args = message.text.replace(Commands.Start, "", 1).strip()
         name, val = args.split(name_value_delimiter)

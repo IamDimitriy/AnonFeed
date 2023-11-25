@@ -7,8 +7,15 @@
 /__pycache__/
 /SQL/
 __pycache__
+/*/__pycache__
 
 #Files
+/Metrics/Conversion.txt
+/Metrics/ResponseTime.txt
+docker-compose.yml
+.dockerignore
+Dockerfile
+pythonProject.rar
 README.md
 Data/Settings.txt
 /dataSources.local.xml

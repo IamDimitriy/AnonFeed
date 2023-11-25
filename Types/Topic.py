@@ -2,7 +2,7 @@ import random
 import time
 from typing import List
 
-import Main
+import main
 import Utils
 from Constants import Pathes
 from Types.Answer import Answer
@@ -44,24 +44,24 @@ class Topic:
 
     async def sync_answers(self):
         with open(Pathes.Queries_folder + "/GetAllAnswers.sql") as file:
-            cur = Main.db.cursor()
+            cur = main.db.cursor()
             request = await Utils.read_async(file)
             id_ = await self.get_id()
             await Utils.exec_request_async(cur, request, id_)
             res = cur.fetchall()
-            Main.db.commit()
+            main.db.commit()
             cur.close()
 
         return [Answer(x[0], i) for i, x in enumerate(res)]
 
     async def flush(self, author_id):
         with open(Pathes.Queries_folder + "/PostTopic.sql") as file:
-            cur = Main.db.cursor()
+            cur = main.db.cursor()
             text = await Utils.read_async(file)
             request = text.replace("\n", " ")
             id_ = await self.get_id()
             await Utils.exec_request_async(cur, request, id_, author_id, self.__question, self.__topic_sequence)
-            Main.db.commit()
+            main.db.commit()
             cur.close()
 
         for i in self.__answers:
@@ -69,12 +69,12 @@ class Topic:
 
     async def delete(self):
         with open(Pathes.Queries_folder + "/DeleteTopic.sql") as file:
-            cur = Main.db.cursor()
+            cur = main.db.cursor()
             text = await Utils.read_async(file)
             request = text.replace("\n", " ")
             id_ = await self.get_id()
             await Utils.exec_request_async(cur, request, id_)
-            Main.db.commit()
+            main.db.commit()
             cur.close()
 
     async def get_id(self):
@@ -84,7 +84,7 @@ class Topic:
         with open(Pathes.Queries_folder + "/GetTopic.sql") as file:
             request = await Utils.read_async(file)
 
-            cur = Main.db.cursor()
+            cur = main.db.cursor()
             topic_id = self.__generate_id__()
 
             cur = await Utils.exec_request_async(cur, request, topic_id)

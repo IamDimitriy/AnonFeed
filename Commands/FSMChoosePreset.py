@@ -17,6 +17,8 @@ def init():
 
     @router.message(F.text == Commands.Choose_preset)
     async def command(message: types.Message, state: FSMContext):
+        await state.clear()
+
         preset = FrequentlyAskedQuestions.Preset
         string_presets = '\n'.join([str(x + 1) + ") " + preset[x] for x in range(len(preset))])
         cancel_markup = CancelMarkup.create_markup()

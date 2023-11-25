@@ -1,9 +1,8 @@
+import os
+
+
 class FrequentlyAskedQuestions:
     Preset = ["А?", "Б?", "В?", "Г?"]
-
-
-class Constants:
-    Instruction_photo_path = r"C:\Users\q3216\PycharmProjects\pythonProject\Data\logo.jpg"
 
 
 class Commands:
@@ -20,10 +19,18 @@ class CallbackData:
 
 
 class Pathes:
-    Instruction_image = r"C:\Users\q3216\PycharmProjects\pythonProject\Data\logo.jpg"
-    Settings_file = r"C:\Users\q3216\PycharmProjects\pythonProject\Data\Settings.txt"
-    Queries_folder = r"C:\Users\q3216\PycharmProjects\pythonProject\SQl\Queries"
-    Data_base_folder = r"C:\Users\q3216\PycharmProjects\pythonProject\SQl\DataBases"
+    File_directory = os.path.dirname(os.path.realpath('__file__'))
+
+    Instruction_image = os.path.join(File_directory, "Data/logo.jpg")
+    Settings_file = os.path.join(File_directory, "Data/Settings.txt")
+
+    Queries_folder = os.path.join(File_directory, "SQL/Queries")
+    Data_base_folder = os.path.join(File_directory, "SQL/DataBases")
+
+    Metrics = os.path.join(File_directory, "Metrics")
+    Response_time = os.path.join(Metrics, "ResponseTime.txt")
+    Conversion = os.path.join(Metrics, "Conversion.txt")
+    ActiveUsers = os.path.join(Metrics, "ActiveUsers.txt")
 
 
 sclon_answer = ["",
