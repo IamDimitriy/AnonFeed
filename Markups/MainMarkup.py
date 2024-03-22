@@ -7,14 +7,14 @@ from aiogram.utils.keyboard import ReplyKeyboardMarkup, ReplyKeyboardBuilder
 
 @lru_cache
 def create_markup() -> ReplyKeyboardMarkup:
-    answer_to_question = types.KeyboardButton(text=Commands.Answer_to_question)
     ask_question = types.KeyboardButton(text=Commands.Ask_question)
     chose_preset = types.KeyboardButton(text=Commands.Choose_preset)
+    call_support = types.KeyboardButton(text=Commands.Contact_support)
 
     builder = ReplyKeyboardBuilder()
 
-    builder.row(answer_to_question)
     builder.row(ask_question, chose_preset)
+    builder.row(call_support)
 
     markup = builder.as_markup()
     markup.resize_keyboard = True

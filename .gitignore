@@ -8,8 +8,10 @@
 /SQL/
 __pycache__
 /*/__pycache__
+/__pycache__
 
 #Files
+requirements.txt
 /Metrics/Conversion.txt
 /Metrics/ResponseTime.txt
 docker-compose.yml

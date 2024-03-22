@@ -86,9 +86,9 @@ def init():
         await message.answer(Phrases.Input_stopped, reply_markup=main_markup)
         await state.clear()
 
-    @main.conversion.count_link_follow
     @router.message(FSMAnswerToQuestion.answer)
     async def post_answer(message: Message, state: FSMContext):
+        main.conversion.count_answer()
         main_markup = MainMarkup.create_markup()
         await message.reply(Phrases.Thanks_for_answer, reply_markup=main_markup)
         answer = message.text

@@ -16,6 +16,13 @@ handlers = {
 }
 
 
+async def ShowInstruction(message):
+    markup = Markups.MainMarkup.create_markup()
+    photo = FSInputFile(Pathes.Instruction_image, Constants.ImageNames.Instruction)
+    await message.answer_photo(photo=photo, caption=Phrases.Instruction,
+                               reply_markup=markup)
+
+
 def init():
     router = Router()
 
@@ -27,14 +34,11 @@ def init():
         await message.answer(Phrases.Greeting)
         await message.answer(Phrases.Introduce)
 
-        markup = Markups.MainMarkup.create_markup()
-        photo = FSInputFile(Pathes.Instruction_image, "Instruction")
-        await message.answer_photo(photo=photo, caption=Phrases.Instruction,
-                                   reply_markup=markup)
+        await ShowInstruction(message)
 
     @router.message(F.text.contains(Commands.Start))
-    @main.conversion.count_link_follow
     async def command_start_deeplink(message: types.Message, state: FSMContext):
+        main.conversion.count_link_follow()
         await state.clear()
 
         await message.delete()
