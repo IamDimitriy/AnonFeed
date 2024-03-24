@@ -3,15 +3,17 @@
 /.idea
 /httpRequests/
 /dataSources/
-/Data/
+
 /__pycache__/
-/SQL/
+/SQL/DataBases
 __pycache__
 /*/__pycache__
 /__pycache__
 
 #Files
+/Data/Settings.txt
 requirements.txt
+/Metrics/ActiveUsers.txt
 /Metrics/Conversion.txt
 /Metrics/ResponseTime.txt
 docker-compose.yml
