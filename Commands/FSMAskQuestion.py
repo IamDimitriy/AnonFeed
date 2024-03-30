@@ -37,7 +37,7 @@ def init():
         topic_id = await topic.get_id()
         main_markup = MainMarkup.create_markup()
         await message.answer(Phrases.Questions_asked)
-        await message.reply("t.me/AnonFeedBot?start=topic-" + str(topic_id),
+        await message.reply("t.me/AnonFeed_Bot?start=topic-" + str(topic_id),
                             reply_markup=main_markup)
         await message.answer(Phrases.ReferenceInstruction)
         await state.clear()
