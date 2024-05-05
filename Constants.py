@@ -15,7 +15,7 @@ class FrequentlyAskedQuestions:
 
 
 class Commands:
-    Contact_support = "Обратная связь"
+    Contact_support = "Поддержка"
     Answer_to_question = "Ответить на вопрос"
     Choose_preset = "Выбрать готовый вопрос"
     Ask_question = "Задать свой вопрос"
