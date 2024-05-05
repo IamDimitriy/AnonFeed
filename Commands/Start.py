@@ -1,4 +1,5 @@
 from aiogram import Router, F, types
+from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile
 
@@ -20,7 +21,7 @@ async def ShowInstruction(message):
     markup = Markups.MainMarkup.create_markup()
     photo = FSInputFile(Pathes.Instruction_image, Constants.ImageNames.Instruction)
     await message.answer_photo(photo=photo, caption=Phrases.Instruction,
-                               reply_markup=markup)
+                               reply_markup=markup, parse_mode=ParseMode.MARKDOWN)
 
 
 def init():
@@ -31,8 +32,8 @@ def init():
         await message.delete()
         user = User(message.from_user.id, message.chat.id)
         await user.flush()
-        await message.answer(Phrases.Greeting)
-        await message.answer(Phrases.Introduce)
+        await message.answer(Phrases.Greeting, parse_mode=ParseMode.MARKDOWN)
+        await message.answer(Phrases.Introduce, parse_mode=ParseMode.MARKDOWN)
 
         await ShowInstruction(message)
 

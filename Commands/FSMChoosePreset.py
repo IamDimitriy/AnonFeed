@@ -1,4 +1,5 @@
 from aiogram import types, F, Router
+from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
@@ -41,7 +42,7 @@ def init():
 
         topic_id = await topic.get_id()
         main_markup = MainMarkup.create_markup()
-        await message.reply(Phrases.Questions_asked)
+        await message.reply(Phrases.Questions_asked, parse_mode=ParseMode.MARKDOWN)
         await message.reply(Phrases.ReferenceInstruction + "\n" + "t.me/AnonFeed_Bot?start=topic-" + str(topic_id),
                             reply_markup=main_markup)
         await user.flush()
