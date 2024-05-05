@@ -1,6 +1,7 @@
 import asyncio
 
 from aiogram import Router, F
+from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
@@ -31,7 +32,7 @@ async def redirect_to_topic_answer(message: Message, params: str, state: FSMCont
     topic = Topic(*res[:-1])
     main_markup = MainMarkup.create_markup()
     cancel_markup = CancelMarkup.create_markup()
-    await message.answer(Phrases.Greeting, reply_markup=main_markup)
+    await message.answer(Phrases.Greeting, reply_markup=main_markup, parse_mode=ParseMode.MARKDOWN)
     await message.answer(Phrases.Answer_to_question + "\n" + topic.get_question(), reply_markup=cancel_markup)
 
     await state.update_data(topic=topic, user_id=res[-1])
