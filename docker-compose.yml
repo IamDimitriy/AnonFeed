@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  anon_feed_bot:
+    restart: always
+    build:
+      context: .
+    container_name: bot
+    command: python main.py
+    volumes:
+      - ./:/app/
