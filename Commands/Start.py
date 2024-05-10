@@ -32,8 +32,8 @@ def init():
         await message.delete()
         user = User(message.from_user.id, message.chat.id)
         await user.flush()
-        await message.answer(Phrases.Greeting, parse_mode=ParseMode.MARKDOWN)
-        await message.answer(Phrases.Introduce, parse_mode=ParseMode.MARKDOWN)
+        answer = f"{Phrases.Greeting}\n{Phrases.Introduce}"
+        await message.answer(answer, parse_mode=ParseMode.MARKDOWN)
 
         await ShowInstruction(message)
 
